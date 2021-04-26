@@ -31,11 +31,8 @@ items_path = 'tempData/sourceData/items.csv'
 subject_cats_0_path = 'tempData/sourceData/subject_cats_0.csv'
 
 ########################################################################################################################
-# Code
+# Load Data
 ########################################################################################################################
-
-########################################################################################################################
-# General Overview over tables
 
 # Load the dmc source data
 # - clicks/baskets/order over a period of 3M
@@ -44,6 +41,9 @@ transactions_df = pd.read_csv(transactions_path, delimiter='|', sep='.', encodin
 # - list of product ids (subset of products from items_df) to be used for prediction
 evaluation_df = pd.read_csv(evaluation_path, sep='.', encoding='utf-8')
 items_df = pd.read_csv(items_path, delimiter='|', sep='.', encoding='utf-8')
+
+# load category lookup table (manually created)
+subject_cats_0 = pd.read_csv(subject_cats_0_path, delimiter=';', encoding='utf-8')
 
 # Get shape of dfs
 print(f'shape transactions_df: {transactions_df.shape}')
@@ -63,6 +63,25 @@ print(f'desc items_df: \n{items_df.describe()}\n')
 # Get cnt of unique sessions / items
 print(f'cnt unqiue sessions: \n{transactions_df["sessionID"].nunique()}\n') #271,983
 print(f'cnt unqiue items: \n{transactions_df["itemID"].nunique()}\n') #24,909
+
+########################################################################################################################
+# Preprocessing for further inspection
+########################################################################################################################
+
+# get len of mt string
+items_df['mt_len'] = items_df['main topic'].str.len()
+print(f'str len main topics: \n{items_df["mt_len"].describe()}\n')
+
+# get first element (top level category) of mt string
+items_df['mt_0'] = items_df['main topic'].str[0]
+
+# add basket / order flag
+transactions_df['basket_flg'] = np.where(transactions_df['basket'] > 0, 1, 0)
+transactions_df['order_flg'] = np.where(transactions_df['order'] > 0, 1, 0)
+
+########################################################################################################################
+# General Overview per Table / Field
+########################################################################################################################
 
 ########################################################################################################################
 # Items
@@ -106,21 +125,11 @@ print(f'books per publisher: \n{books_per_publisher.describe()}\n')
 # MAIN TOPICS ##########################################################################################################
 # - top high level cats: Children’s, Teenage and Educational (62%), Fiction and Related items (34%)
 
-# load category lookup table
-subject_cats_0 = pd.read_csv(subject_cats_0_path, delimiter=';', encoding='utf-8')
-
 # count of books per main topic (=mt) combo
 books_per_mt = pd.DataFrame.from_dict(Counter(items_df.loc[:,'main topic']),
                                     orient='index',
                                     columns=['book_cnt']).sort_values(by='book_cnt', ascending=False)
 books_per_mt['frac[%]'] = books_per_mt['book_cnt'] * 100 / books_per_mt['book_cnt'].sum()
-
-# get len of mt string
-items_df['mt_len'] = items_df['main topic'].str.len()
-print(f'str len main topics: \n{items_df["mt_len"].describe()}\n')
-
-# get first element (top level category) of mt string
-items_df['mt_0'] = items_df['main topic'].str[0]
 
 # plot mt_0 distribution
 sns.set_theme()
@@ -160,8 +169,6 @@ print(f'clicks per item: \n{clicks_per_item.describe()}\n')
 
 # ORDER ################################################################################################################
 # - items that where finally bought
-transactions_df['basket_flg'] = np.where(transactions_df['basket'] > 0, 1, 0)
-transactions_df['order_flg'] = np.where(transactions_df['order'] > 0, 1, 0)
 
 # get cnt of orders per session
 orders_per_session = transactions_df[['sessionID', 'order']].groupby('sessionID')['order'].count().reset_index().\
@@ -183,12 +190,12 @@ items_per_basket_order = transactions_df[['itemID',
 items_per_basket_order['frac[%]'] = items_per_basket_order['item_cnt'] * 100 / items_per_basket_order['item_cnt'].sum()
 print(f'basket to order conversion: \n{items_per_basket_order}\n')
 
-# get items frequently ordered together
-import itertools
-item_order_agg_per_session = transactions_df.groupby(['sessionID']).agg({'itemID': lambda x: x.ravel().tolist()}).reset_index()
-combinations_list = []
-for row in item_order_agg_per_session.itemID:
-    combinations = list(itertools.combinations(row, 2))
-    combinations_list.append(combinations)
-combination_counts = pd.Series(combinations_list).explode().reset_index(drop=True)
-combination_counts.value_counts()
+# # get items frequently ordered together
+# import itertools
+# item_order_agg_per_session = transactions_df.groupby(['sessionID']).agg({'itemID': lambda x: x.ravel().tolist()}).reset_index()
+# combinations_list = []
+# for row in item_order_agg_per_session.itemID:
+#     combinations = list(itertools.combinations(row, 2))
+#     combinations_list.append(combinations)
+# combination_counts = pd.Series(combinations_list).explode().reset_index(drop=True)
+# combination_counts.value_counts()
