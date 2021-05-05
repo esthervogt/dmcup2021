@@ -1,8 +1,8 @@
 import sys
-from nltk.corpus import stopwords
 import nltk
-nltk.download('stopwords')
+from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+nltk.download('stopwords')
 
 
 def recommend_based_on_transactions(df_transactions, df_items, item_id, sort_by="sum",
