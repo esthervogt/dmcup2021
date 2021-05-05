@@ -1,2 +1,6 @@
 *.xlsx
 *.pptx
+
+
+# ignore firebase secrets
+/retrieve_firebase_data/firebase_secret
