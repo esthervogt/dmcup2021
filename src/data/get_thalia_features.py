@@ -19,33 +19,50 @@ def get_thalia_features(books, book_source_path):
     book_source = get_book_df(book_source_path)
 
     df_list =[]
+    count = 0
     for book_id in books:
-        # Get the Thalia URL based on the title    
-        url_book = get_url(book_id, book_source)
-        if url_book != '':
-            page = requests.get(url_book)
-            soup = BeautifulSoup(page.content, "html.parser")    
+        count = count +1
+        try:
+            # Get the Thalia URL based on the title
+            url_book = get_url(book_id, book_source)
+            if url_book != '':
+                page = requests.get(url_book)
+                soup = BeautifulSoup(page.content, "html.parser")
+                dict_description = {"itemID": book_id,
+                                    "description": get_description(book_id,book_source, soup),
+                                    "rating": get_rating(book_id, book_source, soup),
+                                    "number_pages": get_number_pages(book_id, book_source, soup),
+                                    "recommended_age": get_recommended_age(book_id, book_source, soup),
+                                    "release_date": get_release_date(book_id, book_source, soup),
+                                    "language": get_language(book_id, book_source, soup),
+                                    "thalia_ranking": get_thalia_ranking(book_id, book_source, soup),
+                                    "cover_url": get_cover(book_id, book_source, soup)}
+                df_list.append(dict_description)
+            else:
+                print("Error included:" + str(count))
+                dict_description = {"itemID": book_id,
+                                    "description": '',
+                                    "rating": '',
+                                    "number_pages": '',
+                                    "recommended_age": '',
+                                    "release_date": '',
+                                    "language": '',
+                                    "thalia_ranking": '',
+                                    "cover_url": ''}
+                df_list.append(dict_description)
+        except:
             dict_description = {"itemID": book_id,
-                                "description": get_description(book_id,book_source, soup),
-                                "rating": get_rating(book_id, book_source, soup),
-                                "number_pages": get_number_pages(book_id, book_source, soup),
-                                "recommended_age": get_recommended_age(book_id, book_source, soup),
-                                "release_date": get_release_date(book_id, book_source, soup),
-                                "language": get_language(book_id, book_source, soup),
-                                "thalia_ranking": get_thalia_ranking(book_id, book_source, soup),
-                                "cover_url": get_cover(book_id, book_source, soup)}
+                                        "description": 'error',
+                                        "rating": 'error',
+                                        "number_pages": 'error',
+                                        "recommended_age": 'error',
+                                        "release_date": 'error',
+                                        "language": 'error',
+                                        "thalia_ranking": 'error',
+                                        "cover_url": 'error'}
             df_list.append(dict_description)
-        else:
-            dict_description = {"itemID": book_id,
-                                "description": '',
-                                "rating": '',
-                                "number_pages": '',
-                                "recommended_age": '',
-                                "release_date": '',
-                                "language": '',
-                                "thalia_ranking": '',
-                                "cover_url": ''}
-            df_list.append(dict_description)
+        if count % 50 == 0:
+            print(count)
     df_descriptions = pd.DataFrame.from_dict(df_list)
     
     return df_descriptions
@@ -102,6 +119,34 @@ def get_description(book_id, book_source, soup):
 
     return des
 
+def get_cover(book_id, book_source):
+    """ Function to scrape a cover of a book based on its ID and save it in a certain folder
+
+        Example: get_cover(203421, book_source)
+
+        Args:
+            book_id (id): unique ID of a book from the DMCUP
+            book_source (dataframe): DF containing all the books considered
+
+        Returns:
+            Saves a scraped cover image
+        """
+    # Get the title based on the itemID
+    title = book_source.loc[(book_source['itemID'] == book_id)]["title"].item()
+
+    # Get the Thalia URL based on the title
+    url_search = "https://www.thalia.de/suche?filterPATHROOT=&sq=" + title
+    page = requests.get(url_search)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    href = soup.find_all('a', caption="suchergebnis-klick")[0]['href']
+    url_book = "https://www.thalia.de" + href
+
+    # Scrape the Cover from
+    page = requests.get(url_book)
+    soup = BeautifulSoup(page.content, "html.parser")
+    cover = soup.find_all('img', class_='largeImg')[0]['src']
+    name = str(book_id)
+    return image_
 
 def get_rating(book_id, book_source, soup):
     """ Function to scrape a rating of a book based on its ID
@@ -264,5 +309,7 @@ def get_book_df(path):
     book_df = book_df.drop('main topic', axis=1).drop('subtopics', axis=1)
     return book_df
 
-#Test = get_thalia_features([15606], "../tempData/sourceData/items.csv")
-#print(Test)
+df = pd.read_csv('../../data/external/items.csv', delimiter = '|')
+list = df['itemID'].to_list()
+thalia_features = get_thalia_features(list[70000:], "../../data/external/items.csv")
+thalia_features.to_pickle('../../data/external/thalia_features_end.pkl')
