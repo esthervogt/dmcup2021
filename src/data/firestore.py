@@ -17,7 +17,7 @@ import firebase_admin
 from firebase_admin import firestore
 
 
-def connect_to_firestore(credentials="firebase_secret/dmc-book-recommendation-firebase-adminsdk-yebqi-d805561028.json",
+def connect_to_firestore(credentials="../secrets/dmc-book-recommendation-firebase-adminsdk-yebqi-d805561028.json",
                          database_url="https://book-recommendation-website.firebaseio.com/"):
     """Connects to firestore instance.
 
