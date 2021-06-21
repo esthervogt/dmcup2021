@@ -15,6 +15,9 @@
 
 import firebase_admin
 from firebase_admin import firestore
+from tqdm import tqdm
+
+tqdm.pandas()
 
 
 def connect_to_firestore(credentials="../secrets/dmc-book-recommendation-firebase-adminsdk-yebqi-d805561028.json",
@@ -71,4 +74,4 @@ def write_documents_to_collection(firestore_client, data, collection="test_write
 
     documents = data.to_dict(orient="records")
     collection_ref = firestore_client.collection(collection)
-    list(map(lambda x: collection_ref.add(x), documents))
+    list(map(lambda x: collection_ref.add(x), tqdm(documents)))
