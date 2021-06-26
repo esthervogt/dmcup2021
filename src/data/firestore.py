@@ -57,7 +57,7 @@ def retrieve_documents_from_collection(firestore_client, collection="test_collec
     docs_ref = firestore_client.collection(collection)
     docs = docs_ref.get()
     results = []
-    for doc in docs:
+    for doc in tqdm(docs):
         results.append(doc.to_dict())
 
     return results
